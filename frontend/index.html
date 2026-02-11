@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="bn" dir="ltr">
+<head>
+  <!-- Primary Meta Tags -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>বিডিআস্ক | BdAsk — বাংলাদেশের AI সার্চ ইঞ্জিন</title>
+  <meta name="title" content="বিডিআস্ক | BdAsk — বাংলাদেশের AI সার্চ ইঞ্জিন">
+  <meta name="description" content="বাংলায় AI চ্যাট, লাইভ ক্রিকেট স্কোর, সর্বশেষ খবর, নামাজের সময়, আবহাওয়া, অনুবাদ — সব একটি জায়গায়। Bengali AI Search Engine with cricket, news, prayer times, weather & more.">
+  <meta name="keywords" content="বিডিআস্ক, BdAsk, বাংলা AI, বাংলাদেশ, ক্রিকেট, খবর, নামাজের সময়, আবহাওয়া, Bengali AI, Bangladesh">
+  <meta name="author" content="BdAsk">
+  <meta name="language" content="Bengali">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0a0a1a">
+
+  <!-- Language -->
+  <link rel="alternate" hreflang="bn" href="https://bdask.com/">
+  <link rel="alternate" hreflang="en" href="https://bdask.com/?lang=en">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bdask.com/">
+  <meta property="og:title" content="বিডিআস্ক — বাংলাদেশের AI সার্চ ইঞ্জিন 🇧🇩">
+  <meta property="og:description" content="বাংলায় AI চ্যাট করুন। লাইভ ক্রিকেট, খবর, নামাজের সময়, আবহাওয়া, যাকাত ক্যালকুলেটর — সব ফ্রি!">
+  <meta property="og:image" content="https://bdask.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="bn_BD">
+  <meta property="og:site_name" content="BdAsk">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://bdask.com/">
+  <meta name="twitter:title" content="বিডিআস্ক — বাংলাদেশের AI সার্চ ইঞ্জিন 🇧🇩">
+  <meta name="twitter:description" content="বাংলায় AI চ্যাট, লাইভ ক্রিকেট, খবর, নামাজের সময় — সব একটি জায়গায়!">
+  <meta name="twitter:image" content="https://bdask.com/og-image.png">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="বিডিআস্ক">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/og-image.svg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/styles.css">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "বিডিআস্ক | BdAsk",
+    "url": "https://bdask.com",
+    "description": "বাংলাদেশের প্রথম AI সার্চ ইঞ্জিন — বাংলায় AI চ্যাট, ক্রিকেট, খবর, নামাজের সময়",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web",
+    "inLanguage": ["bn", "en"],
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BDT" },
+    "author": { "@type": "Organization", "name": "BdAsk", "url": "https://bdask.com" }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash-screen" class="splash">
+    <div class="splash-content">
+      <div class="splash-logo">
+        <span class="splash-icon">🇧🇩</span>
+        <h1 class="splash-title">বিডিআস্ক</h1>
+        <p class="splash-subtitle">বাংলাদেশের AI সার্চ ইঞ্জিন</p>
+      </div>
+      <div class="splash-loader">
+        <div class="loader-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header id="app-header" class="header">
+    <div class="header-inner">
+      <div class="header-logo">
+        <span class="logo-flag">🇧🇩</span>
+        <span class="logo-text">বিডিআস্ক</span>
+        <span class="logo-badge">AI</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme-toggle" class="icon-btn" title="থিম পরিবর্তন" aria-label="Toggle theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <button id="btn-lang-toggle" class="icon-btn" title="ভাষা পরিবর্তন" aria-label="Toggle language">
+          <span>বাং</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main id="app-main" class="main">
+
+    <!-- Hero / Search Section -->
+    <section id="hero-section" class="hero">
+      <div class="hero-glow"></div>
+      <h1 class="hero-title">
+        <span class="hero-greeting" id="hero-greeting">আসসালামু আলাইকুম</span>
+        <span class="hero-headline">আমি বিডিআস্ক, আপনার <span class="text-gradient">AI সহায়ক</span></span>
+      </h1>
+      <p class="hero-desc">বাংলায় যেকোনো প্রশ্ন করুন — আমি তাৎক্ষণিক উত্তর দেব</p>
+
+      <!-- Chat Input -->
+      <div class="chat-input-wrapper" id="chat-input-wrapper">
+        <div class="chat-input-box">
+          <textarea id="chat-input" class="chat-input" placeholder="বাংলায় আপনার প্রশ্ন লিখুন..." rows="1" autofocus></textarea>
+          <div class="chat-input-actions">
+            <button id="btn-voice" class="voice-btn" title="ভয়েস ইনপুট" aria-label="Voice input">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button id="btn-send" class="send-btn" title="পাঠান" aria-label="Send message">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="quick-prompts" id="quick-prompts">
+          <button class="quick-prompt" data-prompt="আজকের ক্রিকেট স্কোর কত?">🏏 ক্রিকেট স্কোর</button>
+          <button class="quick-prompt" data-prompt="বাংলাদেশে আজকের আবহাওয়া কেমন?">🌤️ আবহাওয়া</button>
+          <button class="quick-prompt" data-prompt="আজকের নামাজের সময় কত?">🕌 নামাজের সময়</button>
+          <button class="quick-prompt" data-prompt="বাংলাদেশের সর্বশেষ খবর কী?">📰 সর্বশেষ খবর</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat Messages Container -->
+    <section id="chat-container" class="chat-container hidden">
+      <div id="chat-messages" class="chat-messages"></div>
+      <div id="typing-indicator" class="typing-indicator hidden">
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="typing-text">বিডিআস্ক ভাবছে...</span>
+      </div>
+    </section>
+
+    <!-- ===== FEATURE TABS ===== -->
+    <section id="features-section" class="features-section">
+      <div class="tabs-scroll">
+        <div class="tabs" id="feature-tabs">
+          <button class="tab active" data-tab="cricket"><span class="tab-icon">🏏</span><span class="tab-label">ক্রিকেট</span></button>
+          <button class="tab" data-tab="news"><span class="tab-icon">📰</span><span class="tab-label">খবর</span></button>
+          <button class="tab" data-tab="prayer"><span class="tab-icon">🕌</span><span class="tab-label">নামাজ</span></button>
+          <button class="tab" data-tab="weather"><span class="tab-icon">🌤️</span><span class="tab-label">আবহাওয়া</span></button>
+          <button class="tab" data-tab="translate"><span class="tab-icon">🌐</span><span class="tab-label">অনুবাদ</span></button>
+          <button class="tab" data-tab="ramadan"><span class="tab-icon">🌙</span><span class="tab-label">রমজান</span></button>
+        </div>
+      </div>
+
+      <!-- Tab Content Panels -->
+      <div class="tab-panels">
+
+        <!-- Cricket Panel -->
+        <div class="tab-panel active" id="panel-cricket" data-tab="cricket">
+          <div class="panel-header">
+            <h2>🏏 লাইভ ক্রিকেট স্কোর</h2>
+            <button class="refresh-btn" data-refresh="cricket" title="রিফ্রেশ">🔄</button>
+          </div>
+          <div class="panel-content" id="cricket-content">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- News Panel -->
+        <div class="tab-panel" id="panel-news" data-tab="news">
+          <div class="panel-header">
+            <h2>📰 সর্বশেষ খবর</h2>
+            <button class="refresh-btn" data-refresh="news" title="রিফ্রেশ">🔄</button>
+          </div>
+          <div class="panel-content" id="news-content">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- Prayer Panel -->
+        <div class="tab-panel" id="panel-prayer" data-tab="prayer">
+          <div class="panel-header">
+            <h2>🕌 নামাজের সময়</h2>
+            <select id="prayer-city" class="city-select">
+              <option value="Dhaka">ঢাকা</option>
+              <option value="Chittagong">চট্টগ্রাম</option>
+              <option value="Sylhet">সিলেট</option>
+              <option value="Rajshahi">রাজশাহী</option>
+              <option value="Khulna">খুলনা</option>
+              <option value="Barishal">বরিশাল</option>
+              <option value="Rangpur">রংপুর</option>
+              <option value="Mymensingh">ময়মনসিংহ</option>
+            </select>
+          </div>
+          <div class="panel-content" id="prayer-content">
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- Weather Panel -->
+        <div class="tab-panel" id="panel-weather" data-tab="weather">
+          <div class="panel-header">
+            <h2>🌤️ আবহাওয়া</h2>
+            <select id="weather-city" class="city-select">
+              <option value="Dhaka">ঢাকা</option>
+              <option value="Chittagong">চট্টগ্রাম</option>
+              <option value="Sylhet">সিলেট</option>
+              <option value="Rajshahi">রাজশাহী</option>
+              <option value="Khulna">খুলনা</option>
+            </select>
+          </div>
+          <div class="panel-content" id="weather-content">
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- Translate Panel -->
+        <div class="tab-panel" id="panel-translate" data-tab="translate">
+          <div class="panel-header">
+            <h2>🌐 অনুবাদ</h2>
+          </div>
+          <div class="panel-content" id="translate-content">
+            <div class="translate-box">
+              <div class="translate-from">
+                <label for="translate-input">বাংলা থেকে</label>
+                <textarea id="translate-input" class="translate-textarea" placeholder="বাংলায় লিখুন..." rows="3"></textarea>
+              </div>
+              <div class="translate-controls">
+                <select id="translate-lang" class="city-select">
+                  <option value="en">English</option>
+                  <option value="hi">हिन्दी</option>
+                  <option value="ar">العربية</option>
+                  <option value="ur">اردو</option>
+                  <option value="ms">Malay</option>
+                  <option value="id">Indonesian</option>
+                  <option value="fr">Français</option>
+                  <option value="es">Español</option>
+                  <option value="de">Deutsch</option>
+                  <option value="ja">日本語</option>
+                  <option value="ko">한국어</option>
+                </select>
+                <button id="btn-translate" class="action-btn">অনুবাদ করুন</button>
+              </div>
+              <div class="translate-to">
+                <label>অনুবাদ:</label>
+                <div id="translate-output" class="translate-output">এখানে অনুবাদ দেখাবে...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ramadan Panel -->
+        <div class="tab-panel" id="panel-ramadan" data-tab="ramadan">
+          <div class="panel-header">
+            <h2>🌙 রমজান স্পেশাল</h2>
+          </div>
+          <div class="panel-content" id="ramadan-content">
+            <div class="ramadan-grid">
+              <!-- Iftar/Sehri Countdown -->
+              <div class="ramadan-card">
+                <div class="ramadan-card-icon">🌅</div>
+                <h3>ইফতার / সেহরি</h3>
+                <div id="iftar-countdown" class="countdown-display">--:--:--</div>
+                <p id="iftar-label" class="countdown-label">পরবর্তী ইফতার পর্যন্ত</p>
+              </div>
+              <!-- Zakat Calculator -->
+              <div class="ramadan-card">
+                <div class="ramadan-card-icon">💰</div>
+                <h3>যাকাত ক্যালকুলেটর</h3>
+                <div class="zakat-form">
+                  <input type="number" id="zakat-amount" class="zakat-input" placeholder="মোট সম্পদ (টাকা)">
+                  <button id="btn-zakat" class="action-btn">হিসাব করুন</button>
+                  <div id="zakat-result" class="zakat-result"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FLOATING BOTTOM NAV ===== -->
+  <nav id="bottom-nav" class="bottom-nav">
+    <button class="nav-item active" data-nav="home" aria-label="Home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>হোম</span>
+    </button>
+    <button class="nav-item" data-nav="chat" aria-label="Chat">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>চ্যাট</span>
+    </button>
+    <button class="nav-item" data-nav="features" aria-label="Features">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>ফিচার</span>
+    </button>
+    <button class="nav-item" data-nav="history" aria-label="History">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>ইতিহাস</span>
+    </button>
+  </nav>
+
+  <!-- ===== CHAT HISTORY SIDEBAR ===== -->
+  <aside id="history-sidebar" class="sidebar hidden">
+    <div class="sidebar-header">
+      <h2>💬 চ্যাট ইতিহাস</h2>
+      <button id="btn-close-sidebar" class="icon-btn" aria-label="Close sidebar">✕</button>
+    </div>
+    <div id="history-list" class="history-list">
+      <p class="empty-state">কোনো চ্যাট ইতিহাস নেই</p>
+    </div>
+    <button id="btn-clear-history" class="clear-history-btn">🗑️ সব মুছে ফেলুন</button>
+  </aside>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="/src/utils/errorHandler.js"></script>
+  <script src="/app.js"></script>
+  <script src="/src/utils/appInit.js"></script>
+
+</body>
+</html>
