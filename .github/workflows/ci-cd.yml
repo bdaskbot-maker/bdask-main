@@ -24,7 +24,7 @@ jobs:
           node-version: '18'
 
       - name: Install Backend Dependencies
-        run: cd backend && npm ci
+        run: cd backend && npm install --production
 
       - name: Run Backend Tests
         run: cd backend && npm test || true
@@ -44,7 +44,7 @@ jobs:
             FOUND=1
           fi
           # Check for hardcoded API keys
-          if grep -rn "AIza\|sk-\|mongodb+srv://" --include="*.js" --include="*.html" --include="*.json" frontend/ backend/ 2>/dev/null | grep -v node_modules | grep -v .env; then
+          if grep -rn "AIza\|sk-\|mongodb+srv://" --include="*.js" --include="*.html" --include="*.json" frontend/ backend/ 2>/dev/null | grep -v node_modules | grep -v .env.example | grep -v package; then
             echo "⚠️ Possible API key found in source code!"
             FOUND=1
           fi

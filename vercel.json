@@ -1,7 +1,9 @@
 {
   "version": 2,
   "name": "bdask",
-  "buildCommand": "",
+  "buildCommand": null,
+  "installCommand": null,
+  "framework": null,
   "outputDirectory": "frontend",
   "rewrites": [
     {
@@ -13,15 +15,27 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
       ]
     },
     {
       "source": "/(.*)\\.(?:js|css|png|jpg|svg|woff2)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, immutable"
+        }
       ]
     }
   ]
