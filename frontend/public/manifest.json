@@ -1,0 +1,85 @@
+{
+  "name": "বিডিআস্ক — বাংলাদেশের AI সার্চ ইঞ্জিন",
+  "short_name": "বিডিআস্ক",
+  "description": "বাংলায় AI চ্যাট, লাইভ ক্রিকেট, খবর, নামাজের সময়, আবহাওয়া — সব একটি জায়গায়",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "lang": "bn",
+  "dir": "ltr",
+  "categories": ["utilities", "news", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "বিডিআস্ক হোম পেজ"
+    },
+    {
+      "src": "/screenshots/chat.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "AI চ্যাট"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI চ্যাট",
+      "short_name": "চ্যাট",
+      "url": "/?tab=chat",
+      "icons": [{ "src": "/icons/chat-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "ক্রিকেট স্কোর",
+      "short_name": "ক্রিকেট",
+      "url": "/?tab=cricket",
+      "icons": [{ "src": "/icons/cricket-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "নামাজের সময়",
+      "short_name": "নামাজ",
+      "url": "/?tab=prayer",
+      "icons": [{ "src": "/icons/prayer-icon.png", "sizes": "96x96" }]
+    }
+  ]
+}

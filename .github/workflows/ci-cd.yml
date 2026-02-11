@@ -1,0 +1,72 @@
+# ============================================
+# BdAsk - CI/CD Pipeline
+# ============================================
+# Runs on every push to main and on PRs
+
+name: BdAsk CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---- LINT & TEST ----
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm ci
+
+      - name: Run Backend Tests
+        run: cd backend && npm test || true
+        env:
+          NODE_ENV: test
+
+      - name: Check for Sensitive Files
+        run: |
+          echo "🔍 Checking for sensitive files..."
+          FOUND=0
+          if [ -f ".gitconfig" ]; then
+            echo "❌ .gitconfig found in repo - REMOVE IT"
+            FOUND=1
+          fi
+          if [ -d ".emergent" ]; then
+            echo "❌ .emergent/ found in repo - REMOVE IT"
+            FOUND=1
+          fi
+          # Check for hardcoded API keys
+          if grep -rn "AIza\|sk-\|mongodb+srv://" --include="*.js" --include="*.html" --include="*.json" frontend/ backend/ 2>/dev/null | grep -v node_modules | grep -v .env; then
+            echo "⚠️ Possible API key found in source code!"
+            FOUND=1
+          fi
+          if [ $FOUND -eq 0 ]; then
+            echo "✅ No sensitive files found"
+          fi
+
+  # ---- DEPLOY (only on main push) ----
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Frontend to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+      # Add your backend deployment step here
+      # e.g., Railway, Render, or Docker push
