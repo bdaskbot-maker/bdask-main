@@ -1,0 +1,15 @@
+{
+    "name": "bdask",
+    "version": "1.0.0",
+    "description": "BdAsk — বাংলাদেশের AI সার্চ ইঞ্জিন (Bangladesh AI Search Engine)",
+    "private": true,
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "dev": "cd backend && node server.js",
+        "build": "echo 'Static site — no build step required'",
+        "start": "cd backend && node server.js",
+        "test": "echo 'No tests configured' && exit 0"
+    }
+}

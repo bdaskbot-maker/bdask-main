@@ -12,8 +12,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ---- MIDDLEWARE ----
+const allowedOrigin = process.env.FRONTEND_URL || 'https://bdask.com';
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: allowedOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
 }));
