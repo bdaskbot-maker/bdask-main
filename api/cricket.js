@@ -1,9 +1,8 @@
-// ============================================
 // Vercel Serverless Function: /api/cricket
 // GET /api/cricket
 // ============================================
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     const origin = process.env.FRONTEND_URL || 'https://bdask.com';
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');

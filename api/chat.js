@@ -1,9 +1,8 @@
-// ============================================
 // Vercel Serverless Function: /api/chat
 // POST /api/chat { message }
 // ============================================
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS headers
     const origin = process.env.FRONTEND_URL || 'https://bdask.com';
     res.setHeader('Access-Control-Allow-Origin', origin);
