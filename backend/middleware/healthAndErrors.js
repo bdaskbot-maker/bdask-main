@@ -67,9 +67,6 @@ router.get('/health/detailed', async (req, res) => {
   res.status(statusCode).json(health);
 });
 
-module.exports = router;
-
-
 // ============================================
 // ERROR HANDLING MIDDLEWARE
 // Usage: app.use(errorMiddleware); (add AFTER all routes)

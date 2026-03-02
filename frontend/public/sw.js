@@ -11,10 +11,12 @@ const API_CACHE = 'bdask-api-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/styles.css',
+  '/app.js',
   '/manifest.json',
-  // Add your CSS and JS files here
-  // '/styles/main.css',
-  // '/src/app.js',
+  '/src/utils/errorHandler.js',
+  '/src/utils/appInit.js',
+  '/og-image.svg',
 ];
 
 // API routes to cache with network-first strategy

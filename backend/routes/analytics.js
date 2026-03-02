@@ -47,8 +47,8 @@ async function flushAnalytics() {
     console.log(`[Analytics] Flushed ${events.length} events`);
   } catch (e) {
     console.error('[Analytics] Flush failed:', e.message);
-    // Put events back
-    analyticsBuffer.unshift(...events);
+    // Put events back (safe array prepend — avoids stack overflow on large batches)
+    analyticsBuffer = [...events, ...analyticsBuffer];
   }
 }
 
