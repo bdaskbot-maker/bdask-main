@@ -11,5 +11,9 @@
         "build": "echo 'Static site — no build step required'",
         "start": "cd backend && node server.js",
         "test": "echo 'No tests configured' && exit 0"
+    },
+    "dependencies": {
+        "mongoose": "^7.6.3",
+        "dotenv": "^16.3.1"
     }
 }
