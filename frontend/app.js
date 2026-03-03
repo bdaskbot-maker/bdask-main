@@ -224,14 +224,20 @@
                 addMessage(reply, 'bot');
             }
 
-            // Save to history (cap at 50 in memory too)
-            chatHistory.push({
+            // Save to history (cap at 50)
+            const historyItem = {
                 question: text,
-                answer: data.reply || data.response || data.message || '',
-                timestamp: new Date().toISOString(),
-            });
+                answer: data.reply || data.response || data.message || 'উত্তর পাওয়া যায়নি।',
+                timestamp: new Date().toISOString()
+            };
+            chatHistory.push(historyItem);
             if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
             localStorage.setItem('bdask_chat_history', JSON.stringify(chatHistory));
+
+            // Small delay before notifying for smoother UI
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('chat_message_sent', { detail: historyItem }));
+            }, 100);
 
         } catch (err) {
             $('#typing-indicator')?.classList.add('hidden');
@@ -404,14 +410,14 @@
             container.addEventListener('click', (e) => {
                 const card = e.target.closest('.news-card[data-url]');
                 if (card && card.dataset.url) window.open(card.dataset.url, '_blank', 'noopener,noreferrer');
-            }, { once: true });
+            });
             // Keyboard accessibility
             container.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     const card = e.target.closest('.news-card[data-url]');
                     if (card && card.dataset.url) window.open(card.dataset.url, '_blank', 'noopener,noreferrer');
                 }
-            }, { once: true });
+            });
 
         } catch {
             container.innerHTML = renderInfoCard('📰', 'খবর লোড করা যাচ্ছে না।');
@@ -534,14 +540,18 @@
                 body: JSON.stringify({ text: input, targetLang: lang }),
             });
             const data = await res.json();
-            output.textContent = data.translation || data.result || data.translatedText || 'অনুবাদ পাওয়া যায়নি।';
+            const translatedText = data.translation || data.result || data.translatedText || 'অনুবাদ পাওয়া যায়নি।';
+            output.innerHTML = formatMarkdown(translatedText);
         } catch {
             output.textContent = 'অনুবাদ করতে সমস্যা হয়েছে।';
         }
     });
 
     // ---- RAMADAN IFTAR/SEHRI COUNTDOWN ----
+    let ramadanInterval = null;
     function initRamadan() {
+        if (ramadanInterval) return; // Already running
+
         // Use stored prayer times for Dhaka or fetch them
         async function updateRamadanCountdown() {
             const today = new Date();
@@ -568,8 +578,17 @@
                 if (!display) return;
 
                 // Choose the nearest future event
-                let ms = iftarMs > 0 ? iftarMs : sehriMs > 0 ? sehriMs : (24 * 3600000 + iftarMs);
-                const targetLabel = iftarMs > 0 ? 'পরবর্তী ইফতার পর্যন্ত' : 'পরবর্তী সেহরি পর্যন্ত';
+                let ms, targetLabel;
+                if (iftarMs > 0) {
+                    ms = iftarMs;
+                    targetLabel = 'পরবর্তী ইফতার পর্যন্ত';
+                } else if (sehriMs > 0) {
+                    ms = sehriMs;
+                    targetLabel = 'পরবর্তী সেহরি পর্যন্ত';
+                } else {
+                    ms = 24 * 3600000 + iftarMs;
+                    targetLabel = 'পরবর্তী ইফতার পর্যন্ত';
+                }
 
                 if (ms < 0) ms = 0;
                 const h = Math.floor(ms / 3600000);
@@ -579,7 +598,7 @@
                 if (label) label.textContent = targetLabel;
             }
             tick();
-            setInterval(tick, 1000);
+            ramadanInterval = setInterval(tick, 1000);
         }
         updateRamadanCountdown();
     }
@@ -621,9 +640,12 @@
     }
 
     function formatMarkdown(text) {
-        return escapeHtml(text)
+        if (!text) return '';
+        const escaped = escapeHtml(text);
+        return escaped
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/\n/g, '<br>');
     }
 

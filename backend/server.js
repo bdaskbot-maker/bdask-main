@@ -1,20 +1,39 @@
 // ============================================
 // BdAsk Backend - Express Server
 // ============================================
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
+const rateLimiter = require('./middleware/rateLimiter');
 const { healthRoutes, errorMiddleware } = require('./middleware/healthAndErrors');
 const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/bdask';
+
+// ---- RATE LIMITING (simple protection) ----
+const apiLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 100 }); // 100 reqs / 15 mins
+const chatLimiter = rateLimiter({ windowMs: 1 * 60 * 1000, max: 10 }); // 10 chats / 1 min
+
+// ---- ENVIRONMENT VALIDATION ----
+const requiredKeys = ['GEMINI_API_KEY', 'CRICKET_DATA_API_KEY', 'NEWS_DATA_API_KEY'];
+const missingKeys = requiredKeys.filter(key => !process.env[key]);
+if (missingKeys.length > 0) {
+    console.warn(`[WARN] Missing environment variables: ${missingKeys.join(', ')}`);
+    console.warn('   The app will run but some features may be disabled.');
+}
+
+// ---- DATABASE CONNECTION ----
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ MongoDB Connected'))
+    .catch(err => console.error('❌ MongoDB Connection Error:', err.message));
 
 // ---- MIDDLEWARE ----
-const allowedOrigin = process.env.FRONTEND_URL || 'https://bdask.com';
+const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000'; // Default to common dev port
 app.use(cors({
-    origin: allowedOrigin,
+    origin: [allowedOrigin, 'https://bdask.com', 'http://127.0.0.1:3000', 'http://localhost:5000'],
     methods: ['GET', 'POST'],
     credentials: true,
 }));
@@ -30,7 +49,7 @@ app.use('/api', healthRoutes);
 app.use('/api', analyticsRoutes);
 
 // Chat endpoint (placeholder — connect your Gemini API key)
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatLimiter, async (req, res) => {
     const { message } = req.body;
 
     if (!message) {
@@ -67,7 +86,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // Cricket endpoint (proxy to CricketData API)
-app.get('/api/cricket', async (req, res) => {
+app.get('/api/cricket', apiLimiter, async (req, res) => {
     try {
         if (!process.env.CRICKET_DATA_API_KEY) {
             return res.json({ data: [], message: 'Cricket API key not configured.' });
@@ -83,7 +102,7 @@ app.get('/api/cricket', async (req, res) => {
 });
 
 // News endpoint (proxy to NewsData API)
-app.get('/api/news', async (req, res) => {
+app.get('/api/news', apiLimiter, async (req, res) => {
     try {
         if (!process.env.NEWS_DATA_API_KEY) {
             return res.json({ results: [], message: 'News API key not configured.' });
@@ -99,7 +118,7 @@ app.get('/api/news', async (req, res) => {
 });
 
 // Translate endpoint (via Gemini)
-app.post('/api/translate', async (req, res) => {
+app.post('/api/translate', chatLimiter, async (req, res) => {
     const { text, targetLang } = req.body;
 
     if (!text || !targetLang) {

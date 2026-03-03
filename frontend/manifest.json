@@ -1,7 +1,7 @@
 {
-    "name": "বিডিআস্ক — বাংলাদেশের AI সার্চ ইঞ্জিন",
+    "name": "বিডিআস্ক | BdAsk",
     "short_name": "বিডিআস্ক",
-    "description": "বাংলায় AI চ্যাট, লাইভ ক্রিকেট, খবর, নামাজের সময়, আবহাওয়া — সব একটি জায়গায়",
+    "description": "বাংলাদেশের প্রথম AI সার্চ ইঞ্জিন — চ্যাট, ক্রিকেট, খবর, নামাজ — এক জায়গায়।",
     "start_url": "/",
     "display": "standalone",
     "orientation": "portrait",
@@ -22,10 +22,10 @@
             "purpose": "any"
         },
         {
-            "src": "/og-image.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "maskable"
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ],
     "shortcuts": [
