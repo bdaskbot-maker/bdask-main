@@ -57,19 +57,17 @@ jobs:
             echo "✅ No sensitive files found"
           fi
 
-  # ---- DEPLOY (only on main push, only if secrets exist) ----
+  # ---- DEPLOY (only on main push) ----
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' &&
-      github.event_name == 'push' &&
-      secrets.VERCEL_TOKEN != ''
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
       - name: Deploy Frontend to Vercel
         uses: amondnet/vercel-action@v25
+        continue-on-error: true
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
