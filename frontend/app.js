@@ -1,5 +1,12 @@
 // ============================================
 // BdAsk — Main Application Logic
+// All bugs from audit fixed:
+// BUG-02: loadNews() now called on init
+// BUG-03: XSS in news cards fixed (data-url + delegation)
+// GAP-01: Language toggle implemented
+// GAP-03: Iftar/Sehri countdown implemented
+// GAP-04: History item click handler added
+// M-05:   localStorage wrapped in try/catch
 // ============================================
 
 (function () {
@@ -37,11 +44,23 @@
     };
 
     // ---- STATE ----
-    let chatHistory = JSON.parse(localStorage.getItem('bdask_chat_history') || '[]');
+    // M-05 FIX: localStorage wrapped in try/catch to handle corrupted data
+    let chatHistory = [];
+    try {
+        chatHistory = JSON.parse(localStorage.getItem('bdask_chat_history') || '[]');
+        if (!Array.isArray(chatHistory)) chatHistory = [];
+    } catch (e) {
+        chatHistory = [];
+        localStorage.removeItem('bdask_chat_history');
+    }
+
     let isRecording = false;
     let recognition = null;
+    let currentLang = 'bn'; // GAP-01: language state
+    let prayerTimingsCache = null; // GAP-03: cache prayer times for countdown
+    let countdownInterval = null;
 
-    // ---- DOM ELEMENTS ----
+    // ---- DOM HELPERS ----
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -61,14 +80,61 @@
         const hour = new Date().getHours();
         const el = $('#hero-greeting');
         if (!el) return;
-        if (hour >= 5 && hour < 12) el.textContent = 'সুপ্রভাত ☀️';
+        if (hour >= 4 && hour < 12) el.textContent = 'সুপ্রভাত ☀️';
         else if (hour >= 12 && hour < 17) el.textContent = 'শুভ দুপুর 🌤️';
         else if (hour >= 17 && hour < 20) el.textContent = 'শুভ সন্ধ্যা 🌅';
         else el.textContent = 'শুভ রাত্রি 🌙';
     }
     setGreeting();
 
+    // ---- LANGUAGE TOGGLE (GAP-01 FIX) ----
+    const UI_STRINGS = {
+        bn: {
+            placeholder: 'বাংলায় আপনার প্রশ্ন লিখুন...',
+            sendTitle: 'পাঠান',
+            headline: 'আমি বিডিআস্ক, আপনার',
+            headlineAccent: 'AI সহায়ক',
+            heroDesc: 'বাংলায় যেকোনো প্রশ্ন করুন — আমি তাৎক্ষণিক উত্তর দেব',
+            langBtn: 'বাং',
+        },
+        en: {
+            placeholder: 'Ask me anything in Bengali or English...',
+            sendTitle: 'Send',
+            headline: 'I am BdAsk, your',
+            headlineAccent: 'AI Assistant',
+            heroDesc: 'Ask any question — I\'ll answer instantly',
+            langBtn: 'EN',
+        }
+    };
+
+    $('#btn-lang-toggle')?.addEventListener('click', () => {
+        currentLang = currentLang === 'bn' ? 'en' : 'bn';
+        const s = UI_STRINGS[currentLang];
+        const chatInput = $('#chat-input');
+        if (chatInput) chatInput.placeholder = s.placeholder;
+        const langBtn = $('#btn-lang-toggle span');
+        if (langBtn) langBtn.textContent = s.langBtn;
+        const heroDesc = $('.hero-desc');
+        if (heroDesc) heroDesc.textContent = s.heroDesc;
+        const headlineAccent = $('.text-gradient');
+        if (headlineAccent) headlineAccent.textContent = s.headlineAccent;
+        document.documentElement.lang = currentLang;
+    });
+
+    // ---- THEME TOGGLE ----
+    const savedTheme = localStorage.getItem('bdask_theme') || 'dark';
+    if (savedTheme === 'light') document.body.classList.add('light-theme');
+
+    $('#btn-theme-toggle')?.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const isLight = document.body.classList.contains('light-theme');
+        const icon = $('.theme-icon');
+        if (icon) icon.textContent = isLight ? '☀️' : '🌙';
+        localStorage.setItem('bdask_theme', isLight ? 'light' : 'dark');
+    });
+
     // ---- TABS ----
+    const tabLoaded = {};
     $$('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             $$('.tab').forEach(t => t.classList.remove('active'));
@@ -77,7 +143,6 @@
             const panel = $(`#panel-${tab.dataset.tab}`);
             if (panel) panel.classList.add('active');
 
-            // Load data on first tab click
             const tabName = tab.dataset.tab;
             if (tabName === 'cricket') loadCricket();
             else if (tabName === 'news') loadNews();
@@ -94,15 +159,15 @@
 
             const nav = item.dataset.nav;
             if (nav === 'home') {
-                $('#hero-section').scrollIntoView({ behavior: 'smooth' });
                 $('#chat-container').classList.add('hidden');
                 $('#hero-section').style.display = '';
                 $('#features-section').style.display = '';
+                $('#hero-section').scrollIntoView({ behavior: 'smooth' });
             } else if (nav === 'chat') {
                 $('#hero-section').style.display = 'none';
                 $('#features-section').style.display = 'none';
                 $('#chat-container').classList.remove('hidden');
-                $('#chat-input').focus();
+                $('#chat-input')?.focus();
             } else if (nav === 'features') {
                 $('#hero-section').style.display = 'none';
                 $('#chat-container').classList.add('hidden');
@@ -118,6 +183,7 @@
     function toggleSidebar(show) {
         const sidebar = $('#history-sidebar');
         const overlay = $('#sidebar-overlay');
+        if (!sidebar || !overlay) return;
         if (show) {
             sidebar.classList.remove('hidden');
             overlay.classList.remove('hidden');
@@ -132,11 +198,13 @@
     $('#sidebar-overlay')?.addEventListener('click', () => toggleSidebar(false));
 
     $('#btn-clear-history')?.addEventListener('click', () => {
+        if (!confirm('সব চ্যাট ইতিহাস মুছে ফেলবেন?')) return;
         chatHistory = [];
-        localStorage.setItem('bdask_chat_history', '[]');
+        try { localStorage.setItem('bdask_chat_history', '[]'); } catch (e) { }
         renderHistory();
     });
 
+    // GAP-04 FIX: History item click handler — reload conversation
     function renderHistory() {
         const list = $('#history-list');
         if (!list) return;
@@ -145,11 +213,34 @@
             return;
         }
         list.innerHTML = chatHistory.slice().reverse().map((item, i) => `
-      <div class="history-item" data-index="${chatHistory.length - 1 - i}">
+      <div class="history-item" data-index="${chatHistory.length - 1 - i}" role="button" tabindex="0">
         <div class="history-item-question">${escapeHtml(item.question)}</div>
         <div class="history-item-time">${new Date(item.timestamp).toLocaleDateString('bn-BD')}</div>
       </div>
     `).join('');
+
+        // GAP-04: Attach click handlers to replay conversation
+        list.querySelectorAll('.history-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.index, 10);
+                const entry = chatHistory[idx];
+                if (!entry) return;
+                toggleSidebar(false);
+
+                // Switch to chat view and show the historical exchange
+                $('#hero-section').style.display = 'none';
+                $('#features-section').style.display = 'none';
+                $('#chat-container').classList.remove('hidden');
+                $$('.nav-item').forEach(n => n.classList.remove('active'));
+                $('[data-nav="chat"]')?.classList.add('active');
+
+                // Clear and replay
+                const msgs = $('#chat-messages');
+                if (msgs) msgs.innerHTML = '';
+                addMessage(entry.question, 'user');
+                if (entry.answer) addMessage(entry.answer, 'bot');
+            });
+        });
     }
 
     // ---- CHAT ----
@@ -162,7 +253,7 @@
         chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
     });
 
-    // Send on Enter (no Shift)
+    // Send on Enter (not Shift+Enter)
     chatInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -175,7 +266,7 @@
     // Quick prompts
     $$('.quick-prompt').forEach(btn => {
         btn.addEventListener('click', () => {
-            chatInput.value = btn.dataset.prompt;
+            if (chatInput) chatInput.value = btn.dataset.prompt;
             sendMessage();
         });
     });
@@ -191,13 +282,14 @@
         $$('.nav-item').forEach(n => n.classList.remove('active'));
         $('[data-nav="chat"]')?.classList.add('active');
 
-        // Add user message
         addMessage(text, 'user');
-        chatInput.value = '';
-        chatInput.style.height = 'auto';
+        if (chatInput) {
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+        }
 
-        // Show typing
-        $('#typing-indicator')?.classList.remove('hidden');
+        const typingEl = $('#typing-indicator');
+        typingEl?.classList.remove('hidden');
 
         try {
             const response = await fetch(`${API_BASE}/chat`, {
@@ -206,26 +298,36 @@
                 body: JSON.stringify({ message: text }),
             });
 
+            typingEl?.classList.add('hidden');
+
+            if (!response.ok) {
+                addMessage('সার্ভারে সমস্যা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন। 🔧', 'bot');
+                return;
+            }
+
             const data = await response.json();
-            $('#typing-indicator')?.classList.add('hidden');
 
             if (data.error) {
                 addMessage(data.message || 'দুঃখিত, কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন। 😔', 'bot');
             } else {
                 const reply = data.reply || data.response || data.message || 'উত্তর পাওয়া যায়নি।';
                 addMessage(reply, 'bot');
+
+                // Save to history
+                chatHistory.push({
+                    question: text,
+                    answer: reply,
+                    timestamp: new Date().toISOString(),
+                });
+                try {
+                    localStorage.setItem('bdask_chat_history', JSON.stringify(chatHistory.slice(-50)));
+                } catch (e) { }
             }
 
-            // Save to history
-            chatHistory.push({
-                question: text,
-                answer: data.reply || data.response || data.message || '',
-                timestamp: new Date().toISOString(),
-            });
-            localStorage.setItem('bdask_chat_history', JSON.stringify(chatHistory.slice(-50)));
+            window.dispatchEvent(new Event('chat_message_sent'));
 
         } catch (err) {
-            $('#typing-indicator')?.classList.add('hidden');
+            typingEl?.classList.add('hidden');
             addMessage('ইন্টারনেট সংযোগ বা সার্ভারে সমস্যা হয়েছে। আবার চেষ্টা করুন। 📶', 'bot');
         }
     }
@@ -233,7 +335,6 @@
     function addMessage(text, type) {
         const container = $('#chat-messages');
         if (!container) return;
-
         const msg = document.createElement('div');
         msg.className = `message ${type}`;
         msg.innerHTML = `
@@ -249,15 +350,13 @@
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        recognition.lang = 'bn-BD';
+        recognition.lang = currentLang === 'bn' ? 'bn-BD' : 'en-US';
         recognition.interimResults = true;
         recognition.continuous = false;
 
         recognition.onresult = (event) => {
-            const transcript = Array.from(event.results)
-                .map(r => r[0].transcript)
-                .join('');
-            chatInput.value = transcript;
+            const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+            if (chatInput) chatInput.value = transcript;
         };
 
         recognition.onend = () => {
@@ -274,6 +373,7 @@
             if (isRecording) {
                 recognition.stop();
             } else {
+                recognition.lang = currentLang === 'bn' ? 'bn-BD' : 'en-US';
                 recognition.start();
                 isRecording = true;
                 voiceBtn.classList.add('recording');
@@ -284,69 +384,68 @@
         if (voiceBtn) voiceBtn.style.display = 'none';
     }
 
-    // ---- THEME TOGGLE ----
-    $('#btn-theme-toggle')?.addEventListener('click', () => {
-        // Toggle between dark and light themes (simple inversion for now)
-        document.body.classList.toggle('light-theme');
-        const icon = $('.theme-icon');
-        if (icon) {
-            icon.textContent = document.body.classList.contains('light-theme') ? '☀️' : '🌙';
-        }
-    });
+    // ============================================
+    // DATA LOADING FUNCTIONS
+    // ============================================
 
-    // ---- DATA LOADING FUNCTIONS ----
-
-    // Cricket
+    // ---- CRICKET ----
     async function loadCricket() {
         const container = $('#cricket-content');
         if (!container) return;
+        container.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div>';
 
         try {
             const res = await fetch(`${API_BASE}/cricket`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
 
-            if (data.error) {
-                container.innerHTML = renderInfoCard('🏏', 'ক্রিকেট স্কোর এখন পাওয়া যাচ্ছে না। কিছুক্ষণ পর চেষ্টা করুন।');
+            if (data.error || (data.data && data.data.length === 0)) {
+                container.innerHTML = renderInfoCard('🏏', 'এখন কোনো ম্যাচের তথ্য নেই। কিছুক্ষণ পর চেষ্টা করুন।');
                 return;
             }
 
-            const matches = data.data || data.matches || data;
-            if (!Array.isArray(matches) || matches.length === 0) {
+            const matches = data.data || data.matches || (Array.isArray(data) ? data : []);
+            if (!matches.length) {
                 container.innerHTML = renderInfoCard('🏏', 'এখন কোনো ম্যাচ চলছে না।');
                 return;
             }
 
-            container.innerHTML = matches.slice(0, 5).map(m => `
-        <div class="cricket-card">
-          <span class="cricket-status ${m.status?.toLowerCase().includes('live') ? 'live' : 'completed'}">
-            ${m.status || 'সম্পন্ন'}
-          </span>
-          <div class="cricket-teams">
-            <div class="cricket-team">
-              <span class="cricket-team-name">${m.t1 || m.team1 || m.teamInfo?.[0]?.name || 'Team 1'}</span>
-              <span class="cricket-team-score">${m.t1s || m.score1 || m.teamInfo?.[0]?.score || '-'}</span>
+            container.innerHTML = matches.slice(0, 5).map(m => {
+                const isLive = m.matchStarted && !m.matchEnded;
+                return `
+          <div class="cricket-card">
+            <span class="cricket-status ${isLive ? 'live' : 'completed'}">
+              ${isLive ? '● LIVE' : (m.status || 'সম্পন্ন')}
+            </span>
+            <div class="cricket-teams">
+              <div class="cricket-team">
+                <span class="cricket-team-name">${escapeHtml(m.t1 || m.teamInfo?.[0]?.name || 'Team 1')}</span>
+                <span class="cricket-team-score">${escapeHtml(m.t1s || '-')}</span>
+              </div>
+              <div class="cricket-team">
+                <span class="cricket-team-name">${escapeHtml(m.t2 || m.teamInfo?.[1]?.name || 'Team 2')}</span>
+                <span class="cricket-team-score">${escapeHtml(m.t2s || '-')}</span>
+              </div>
             </div>
-            <div class="cricket-team">
-              <span class="cricket-team-name">${m.t2 || m.team2 || m.teamInfo?.[1]?.name || 'Team 2'}</span>
-              <span class="cricket-team-score">${m.t2s || m.score2 || m.teamInfo?.[1]?.score || '-'}</span>
-            </div>
+            <div class="cricket-info">${escapeHtml(m.venue || m.matchType || '')}</div>
           </div>
-          <div class="cricket-info">${m.venue || m.matchType || ''}</div>
-        </div>
-      `).join('');
+        `;
+            }).join('');
 
         } catch {
             container.innerHTML = renderInfoCard('🏏', 'ক্রিকেট স্কোর লোড করা যাচ্ছে না।');
         }
     }
 
-    // News
+    // ---- NEWS ----
     async function loadNews() {
         const container = $('#news-content');
         if (!container) return;
+        container.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
 
         try {
             const res = await fetch(`${API_BASE}/news`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
 
             if (data.error) {
@@ -354,30 +453,40 @@
                 return;
             }
 
-            const articles = data.results || data.articles || data.data || data;
-            if (!Array.isArray(articles) || articles.length === 0) {
+            const articles = data.results || data.articles || (Array.isArray(data) ? data : []);
+            if (!articles.length) {
                 container.innerHTML = renderInfoCard('📰', 'এখন কোনো খবর পাওয়া যাচ্ছে না।');
                 return;
             }
 
+            // BUG-03 FIX: Use data-url attribute instead of inline onclick
             container.innerHTML = articles.slice(0, 8).map(a => `
-        <div class="news-card" onclick="${a.link || a.url ? `window.open('${a.link || a.url}', '_blank')` : ''}">
-          <div class="news-source">${a.source_id || a.source?.name || 'বাংলাদেশ'}</div>
-          <div class="news-title">${a.title || 'শিরোনাম পাওয়া যায়নি'}</div>
+        <div class="news-card" data-url="${escapeHtml(a.link || a.url || '')}" role="button" tabindex="0">
+          <div class="news-source">${escapeHtml(a.source_id || (a.source && a.source.name) || 'বাংলাদেশ')}</div>
+          <div class="news-title">${escapeHtml(a.title || 'শিরোনাম পাওয়া যায়নি')}</div>
           <div class="news-time">${a.pubDate ? new Date(a.pubDate).toLocaleDateString('bn-BD') : ''}</div>
         </div>
       `).join('');
+
+            // BUG-03 FIX: Event delegation — safe, no inline JS
+            container.addEventListener('click', (e) => {
+                const card = e.target.closest('.news-card[data-url]');
+                if (card && card.dataset.url) {
+                    window.open(card.dataset.url, '_blank', 'noopener,noreferrer');
+                }
+            });
 
         } catch {
             container.innerHTML = renderInfoCard('📰', 'খবর লোড করা যাচ্ছে না।');
         }
     }
 
-    // Prayer Times
+    // ---- PRAYER TIMES ----
     async function loadPrayer() {
         const container = $('#prayer-content');
         const citySelect = $('#prayer-city');
         if (!container) return;
+        container.innerHTML = '<div class="skeleton-card"></div>';
 
         const city = citySelect?.value || 'Dhaka';
         const coords = CITY_COORDS[city] || CITY_COORDS.Dhaka;
@@ -385,7 +494,9 @@
         try {
             const today = new Date();
             const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-            const res = await fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=${coords.lat}&longitude=${coords.lon}&method=1`);
+            const res = await fetch(
+                `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${coords.lat}&longitude=${coords.lon}&method=1`
+            );
             const data = await res.json();
 
             if (data.code !== 200) {
@@ -394,6 +505,10 @@
             }
 
             const timings = data.data.timings;
+            // GAP-03: Cache timings for iftar countdown
+            prayerTimingsCache = timings;
+            startIftarCountdown(timings);
+
             const prayers = [
                 { name: 'ফজর', time: timings.Fajr },
                 { name: 'সূর্যোদয়', time: timings.Sunrise },
@@ -403,24 +518,21 @@
                 { name: 'ইশা', time: timings.Isha },
             ];
 
-            // Determine next prayer
+            // Find next prayer
             const now = new Date();
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            let nextPrayerIndex = -1;
-
+            const currentMins = now.getHours() * 60 + now.getMinutes();
+            let nextIdx = -1;
             for (let i = 0; i < prayers.length; i++) {
                 const [h, m] = prayers[i].time.split(':').map(Number);
-                if (h * 60 + m > currentMinutes) {
-                    nextPrayerIndex = i;
-                    break;
-                }
+                if (h * 60 + m > currentMins) { nextIdx = i; break; }
             }
 
             container.innerHTML = `<div class="prayer-grid">
         ${prayers.map((p, i) => `
-          <div class="prayer-card ${i === nextPrayerIndex ? 'next' : ''}">
+          <div class="prayer-card ${i === nextIdx ? 'next' : ''}">
             <div class="prayer-name">${p.name}</div>
             <div class="prayer-time">${p.time}</div>
+            ${i === nextIdx ? '<div class="prayer-next-label">পরবর্তী</div>' : ''}
           </div>
         `).join('')}
       </div>`;
@@ -430,17 +542,20 @@
         }
     }
 
-    // Weather (OpenMeteo — free, no API key!)
+    // ---- WEATHER ----
     async function loadWeather() {
         const container = $('#weather-content');
         const citySelect = $('#weather-city');
         if (!container) return;
+        container.innerHTML = '<div class="skeleton-card"></div>';
 
         const city = citySelect?.value || 'Dhaka';
         const coords = CITY_COORDS[city] || CITY_COORDS.Dhaka;
 
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=Asia/Dhaka`);
+            const res = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=Asia/Dhaka`
+            );
             const data = await res.json();
 
             const current = data.current;
@@ -448,7 +563,7 @@
 
             container.innerHTML = `
         <div class="weather-main">
-          <div style="font-size:48px;margin-bottom:8px">${weather.icon}</div>
+          <div style="font-size:56px;margin-bottom:8px">${weather.icon}</div>
           <div class="weather-temp">${Math.round(current.temperature_2m)}°C</div>
           <div class="weather-desc">${weather.desc}</div>
           <div class="weather-details">
@@ -467,7 +582,6 @@
           </div>
         </div>
       `;
-
         } catch {
             container.innerHTML = renderInfoCard('🌤️', 'আবহাওয়া তথ্য লোড করা যাচ্ছে না।');
         }
@@ -489,7 +603,7 @@
                 body: JSON.stringify({ text: input, targetLang: lang }),
             });
             const data = await res.json();
-            output.textContent = data.translation || data.result || data.translatedText || 'অনুবাদ পাওয়া যায়নি।';
+            output.textContent = data.translation || data.result || 'অনুবাদ পাওয়া যায়নি।';
         } catch {
             output.textContent = 'অনুবাদ করতে সমস্যা হয়েছে।';
         }
@@ -506,10 +620,53 @@
             return;
         }
 
-        // Zakat Nisab (approximately 595g silver or 87.48g gold value)
         const zakatAmount = amount * 0.025; // 2.5%
-        result.textContent = `যাকাত: ৳${zakatAmount.toLocaleString('bn-BD', { maximumFractionDigits: 0 })}`;
+        result.textContent = `যাকাত পরিমাণ: ৳${zakatAmount.toLocaleString('bn-BD', { maximumFractionDigits: 2 })}`;
     });
+
+    // ---- GAP-03 FIX: IFTAR / SEHRI COUNTDOWN ----
+    function startIftarCountdown(timings) {
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        function updateCountdown() {
+            const countdownEl = $('#iftar-countdown');
+            const labelEl = $('#iftar-label');
+            if (!countdownEl || !timings) return;
+
+            const now = new Date();
+            const currentMins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+            // Parse Maghrib (Iftar) and Fajr (Sehri)
+            const [mH, mM] = timings.Maghrib.split(':').map(Number);
+            const [fH, fM] = timings.Fajr.split(':').map(Number);
+            const maghribMins = mH * 60 + mM;
+            const fajrMins = fH * 60 + fM;
+
+            let targetMins;
+            let label;
+            if (currentMins < fajrMins) {
+                targetMins = fajrMins; label = 'সেহরি শেষ হতে বাকি';
+            } else if (currentMins < maghribMins) {
+                targetMins = maghribMins; label = 'ইফতার পর্যন্ত বাকি';
+            } else {
+                // After Maghrib: next day Fajr
+                targetMins = fajrMins + 24 * 60; label = 'আগামীকাল সেহরি পর্যন্ত';
+            }
+
+            const diffSecs = Math.floor((targetMins - currentMins) * 60);
+            if (diffSecs <= 0) { countdownEl.textContent = '00:00:00'; return; }
+
+            const h = Math.floor(diffSecs / 3600);
+            const m = Math.floor((diffSecs % 3600) / 60);
+            const s = diffSecs % 60;
+            countdownEl.textContent =
+                String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            if (labelEl) labelEl.textContent = label;
+        }
+
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
+    }
 
     // ---- REFRESH BUTTONS ----
     $$('.refresh-btn').forEach(btn => {
@@ -520,14 +677,18 @@
         });
     });
 
-    // City select changes
+    // City selects
     $('#prayer-city')?.addEventListener('change', loadPrayer);
     $('#weather-city')?.addEventListener('change', loadWeather);
 
-    // ---- HELPERS ----
+    // ============================================
+    // HELPERS
+    // ============================================
+
     function escapeHtml(str) {
+        if (str == null) return '';
         const el = document.createElement('div');
-        el.textContent = str;
+        el.textContent = String(str);
         return el.innerHTML;
     }
 
@@ -535,20 +696,28 @@
         return escapeHtml(text)
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/\n/g, '<br>');
     }
 
     function renderInfoCard(icon, text) {
-        return `<div class="info-card"><div class="info-card-icon">${icon}</div><div class="info-card-text">${text}</div></div>`;
+        return `<div class="info-card"><div class="info-card-icon">${icon}</div><div class="info-card-text">${escapeHtml(text)}</div></div>`;
     }
 
     function getCityNameBn(name) {
-        const map = { Dhaka: 'ঢাকা', Chittagong: 'চট্টগ্রাম', Sylhet: 'সিলেট', Rajshahi: 'রাজশাহী', Khulna: 'খুলনা', Barishal: 'বরিশাল', Rangpur: 'রংপুর', Mymensingh: 'ময়মনসিংহ' };
+        const map = {
+            Dhaka: 'ঢাকা', Chittagong: 'চট্টগ্রাম', Sylhet: 'সিলেট',
+            Rajshahi: 'রাজশাহী', Khulna: 'খুলনা', Barishal: 'বরিশাল',
+            Rangpur: 'রংপুর', Mymensingh: 'ময়মনসিংহ'
+        };
         return map[name] || name;
     }
 
-    // ---- INITIAL LOAD ----
+    // ============================================
+    // BUG-02 FIX: Initial Load — loadNews() was missing
+    // ============================================
     loadCricket();
+    loadNews();
     loadPrayer();
     loadWeather();
 
