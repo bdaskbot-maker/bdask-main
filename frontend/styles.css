@@ -1305,7 +1305,6 @@ body {
   }
 }
 
-<<<<<<< HEAD
 /* ===== prayer next label ===== */
 .prayer-next-label {
   font-size: 10px;
@@ -1384,41 +1383,9 @@ body.light-theme .message.bot .message-bubble {
 body.light-theme .city-select option {
   background: #fff;
   color: #1a1a2e;
-=======
-/* ===== LIGHT THEME ===== */
-body.light-theme {
-  --bg-primary: #f5f5f8;
-  --bg-secondary: #eeeef5;
-  --bg-card: rgba(255, 255, 255, 0.9);
-  --bg-glass: rgba(255, 255, 255, 0.7);
-  --text-primary: #1a1a2e;
-  --text-secondary: rgba(26, 26, 46, 0.70);
-  --text-muted: rgba(26, 26, 46, 0.45);
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.16);
-}
 
-body.light-theme .header {
-  background: rgba(245, 245, 248, 0.9);
-}
-
-body.light-theme .bottom-nav {
-  background: rgba(245, 245, 248, 0.95);
-}
-
-body.light-theme .sidebar {
-  background: var(--bg-secondary);
-}
-
-body.light-theme .chat-input {
-  color: var(--text-primary);
-}
-
-/* News card keyboard accessibility */
-.news-card:focus {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
->>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
-}
+  /* News card keyboard accessibility */
+  .news-card:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
