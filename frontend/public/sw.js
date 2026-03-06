@@ -16,6 +16,10 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/src/utils/errorHandler.js',
   '/src/utils/appInit.js',
+<<<<<<< HEAD
+=======
+  '/og-image.svg',
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
 ];
 
 // API routes to cache with network-first strategy

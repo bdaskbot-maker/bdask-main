@@ -1,0 +1,48 @@
+{
+    "name": "বিডিআস্ক | BdAsk",
+    "short_name": "বিডিআস্ক",
+    "description": "বাংলাদেশের প্রথম AI সার্চ ইঞ্জিন — চ্যাট, ক্রিকেট, খবর, নামাজ — এক জায়গায়।",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#1a1a2e",
+    "theme_color": "#1a1a2e",
+    "lang": "bn",
+    "dir": "ltr",
+    "categories": [
+        "utilities",
+        "news",
+        "lifestyle"
+    ],
+    "icons": [
+        {
+            "src": "/og-image.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "AI চ্যাট",
+            "short_name": "চ্যাট",
+            "url": "/?tab=chat"
+        },
+        {
+            "name": "ক্রিকেট স্কোর",
+            "short_name": "ক্রিকেট",
+            "url": "/?tab=cricket"
+        },
+        {
+            "name": "নামাজের সময়",
+            "short_name": "নামাজ",
+            "url": "/?tab=prayer"
+        }
+    ]
+}

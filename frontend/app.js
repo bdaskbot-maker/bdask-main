@@ -56,9 +56,15 @@
 
     let isRecording = false;
     let recognition = null;
+<<<<<<< HEAD
     let currentLang = 'bn'; // GAP-01: language state
     let prayerTimingsCache = null; // GAP-03: cache prayer times for countdown
     let countdownInterval = null;
+=======
+    let currentLang = 'bn'; // 'bn' or 'en'
+    // Tab data cache: { tabName: { ts: Date, loaded: true } }
+    const tabCache = {};
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
 
     // ---- DOM HELPERS ----
     const $ = (sel) => document.querySelector(sel);
@@ -143,11 +149,20 @@
             const panel = $(`#panel-${tab.dataset.tab}`);
             if (panel) panel.classList.add('active');
 
+<<<<<<< HEAD
+=======
+            // Load data on first tab click (with 60s cache)
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
             const tabName = tab.dataset.tab;
-            if (tabName === 'cricket') loadCricket();
-            else if (tabName === 'news') loadNews();
-            else if (tabName === 'prayer') loadPrayer();
-            else if (tabName === 'weather') loadWeather();
+            const cacheAge = tabCache[tabName] ? (Date.now() - tabCache[tabName]) : Infinity;
+            if (cacheAge > 60000) {
+                tabCache[tabName] = Date.now();
+                if (tabName === 'cricket') loadCricket();
+                else if (tabName === 'news') loadNews();
+                else if (tabName === 'prayer') loadPrayer();
+                else if (tabName === 'weather') loadWeather();
+                else if (tabName === 'ramadan') initRamadan();
+            }
         });
     });
 
@@ -324,7 +339,24 @@
                 } catch (e) { }
             }
 
+<<<<<<< HEAD
             window.dispatchEvent(new Event('chat_message_sent'));
+=======
+            // Save to history (cap at 50)
+            const historyItem = {
+                question: text,
+                answer: data.reply || data.response || data.message || 'উত্তর পাওয়া যায়নি।',
+                timestamp: new Date().toISOString()
+            };
+            chatHistory.push(historyItem);
+            if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
+            localStorage.setItem('bdask_chat_history', JSON.stringify(chatHistory));
+
+            // Small delay before notifying for smoother UI
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('chat_message_sent', { detail: historyItem }));
+            }, 100);
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
 
         } catch (err) {
             typingEl?.classList.add('hidden');
@@ -384,11 +416,48 @@
         if (voiceBtn) voiceBtn.style.display = 'none';
     }
 
+<<<<<<< HEAD
     // ============================================
     // DATA LOADING FUNCTIONS
     // ============================================
 
     // ---- CRICKET ----
+=======
+    // ---- THEME TOGGLE ----
+    $('#btn-theme-toggle')?.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const icon = $('.theme-icon');
+        if (icon) {
+            icon.textContent = document.body.classList.contains('light-theme') ? '☀️' : '🌙';
+        }
+    });
+
+    // ---- LANGUAGE TOGGLE (BN/EN) ----
+    $('#btn-lang-toggle')?.addEventListener('click', () => {
+        currentLang = currentLang === 'bn' ? 'en' : 'bn';
+        const btn = $('#btn-lang-toggle span');
+        if (btn) btn.textContent = currentLang === 'bn' ? 'বাং' : 'EN';
+        // Update hero text
+        const heroDesc = $('#app-main .hero-desc');
+        if (heroDesc) {
+            heroDesc.textContent = currentLang === 'bn'
+                ? 'বাংলায় যেকোনো প্রশ্ন করুন — আমি তাৎক্ষণিক উত্তর দেব'
+                : 'Ask any question — I will answer instantly';
+        }
+        const chatInputEl = $('#chat-input');
+        if (chatInputEl) {
+            chatInputEl.placeholder = currentLang === 'bn'
+                ? 'বাংলায় আপনার প্রশ্ন লিখুন...'
+                : 'Type your question in English...';
+            chatInputEl.lang = currentLang === 'bn' ? 'bn' : 'en';
+        }
+        if (recognition) recognition.lang = currentLang === 'bn' ? 'bn-BD' : 'en-US';
+    });
+
+    // ---- DATA LOADING FUNCTIONS ----
+
+    // Cricket
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
     async function loadCricket() {
         const container = $('#cricket-content');
         if (!container) return;
@@ -459,14 +528,35 @@
                 return;
             }
 
+<<<<<<< HEAD
             // BUG-03 FIX: Use data-url attribute instead of inline onclick
             container.innerHTML = articles.slice(0, 8).map(a => `
         <div class="news-card" data-url="${escapeHtml(a.link || a.url || '')}" role="button" tabindex="0">
           <div class="news-source">${escapeHtml(a.source_id || (a.source && a.source.name) || 'বাংলাদেশ')}</div>
+=======
+            container.innerHTML = articles.slice(0, 8).map(a => {
+                const safeUrl = (a.link || a.url || '').replace(/"/g, '%22');
+                return `
+        <div class="news-card" tabindex="0" data-url="${safeUrl}" role="button">
+          <div class="news-source">${escapeHtml(a.source_id || a.source?.name || 'বাংলাদেশ')}</div>
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
           <div class="news-title">${escapeHtml(a.title || 'শিরোনাম পাওয়া যায়নি')}</div>
           <div class="news-time">${a.pubDate ? new Date(a.pubDate).toLocaleDateString('bn-BD') : ''}</div>
-        </div>
-      `).join('');
+        </div>`;
+            }).join('');
+
+            // Safe delegated event listener (prevents XSS)
+            container.addEventListener('click', (e) => {
+                const card = e.target.closest('.news-card[data-url]');
+                if (card && card.dataset.url) window.open(card.dataset.url, '_blank', 'noopener,noreferrer');
+            });
+            // Keyboard accessibility
+            container.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const card = e.target.closest('.news-card[data-url]');
+                    if (card && card.dataset.url) window.open(card.dataset.url, '_blank', 'noopener,noreferrer');
+                }
+            });
 
             // BUG-03 FIX: Event delegation — safe, no inline JS
             container.addEventListener('click', (e) => {
@@ -603,11 +693,72 @@
                 body: JSON.stringify({ text: input, targetLang: lang }),
             });
             const data = await res.json();
+<<<<<<< HEAD
             output.textContent = data.translation || data.result || 'অনুবাদ পাওয়া যায়নি।';
+=======
+            const translatedText = data.translation || data.result || data.translatedText || 'অনুবাদ পাওয়া যায়নি।';
+            output.innerHTML = formatMarkdown(translatedText);
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
         } catch {
             output.textContent = 'অনুবাদ করতে সমস্যা হয়েছে।';
         }
     });
+
+    // ---- RAMADAN IFTAR/SEHRI COUNTDOWN ----
+    let ramadanInterval = null;
+    function initRamadan() {
+        if (ramadanInterval) return; // Already running
+
+        // Use stored prayer times for Dhaka or fetch them
+        async function updateRamadanCountdown() {
+            const today = new Date();
+            const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
+            try {
+                const res = await fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=23.8103&longitude=90.4125&method=1`);
+                const data = await res.json();
+                if (data.code !== 200) return;
+                const timings = data.data.timings;
+                startCountdown(timings.Maghrib, timings.Fajr); // Iftar = Maghrib, Sehri = Fajr
+            } catch (e) { /* ignore */ }
+        }
+
+        function startCountdown(iftarTime, sehriTime) {
+            function tick() {
+                const now = new Date();
+                const [ih, im] = iftarTime.split(':').map(Number);
+                const [sh, sm] = sehriTime.split(':').map(Number);
+                const iftarMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), ih, im, 0) - now;
+                const sehriMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm, 0) - now;
+
+                const display = $('#iftar-countdown');
+                const label = $('#iftar-label');
+                if (!display) return;
+
+                // Choose the nearest future event
+                let ms, targetLabel;
+                if (iftarMs > 0) {
+                    ms = iftarMs;
+                    targetLabel = 'পরবর্তী ইফতার পর্যন্ত';
+                } else if (sehriMs > 0) {
+                    ms = sehriMs;
+                    targetLabel = 'পরবর্তী সেহরি পর্যন্ত';
+                } else {
+                    ms = 24 * 3600000 + iftarMs;
+                    targetLabel = 'পরবর্তী ইফতার পর্যন্ত';
+                }
+
+                if (ms < 0) ms = 0;
+                const h = Math.floor(ms / 3600000);
+                const m = Math.floor((ms % 3600000) / 60000);
+                const s = Math.floor((ms % 60000) / 1000);
+                display.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                if (label) label.textContent = targetLabel;
+            }
+            tick();
+            ramadanInterval = setInterval(tick, 1000);
+        }
+        updateRamadanCountdown();
+    }
 
     // ---- ZAKAT CALCULATOR ----
     $('#btn-zakat')?.addEventListener('click', () => {
@@ -693,7 +844,9 @@
     }
 
     function formatMarkdown(text) {
-        return escapeHtml(text)
+        if (!text) return '';
+        const escaped = escapeHtml(text);
+        return escaped
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/`(.*?)`/g, '<code>$1</code>')
@@ -713,9 +866,17 @@
         return map[name] || name;
     }
 
+<<<<<<< HEAD
     // ============================================
     // BUG-02 FIX: Initial Load — loadNews() was missing
     // ============================================
+=======
+    // ---- INITIAL LOAD ----
+    // Mark initial tab loads in cache
+    tabCache['cricket'] = Date.now();
+    tabCache['prayer'] = Date.now();
+    tabCache['weather'] = Date.now();
+>>>>>>> cade32d5d4c3e6883587f260548aba41d2199b53
     loadCricket();
     loadNews();
     loadPrayer();

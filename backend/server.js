@@ -5,8 +5,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
 const { healthRoutes, errorMiddleware } = require('./middleware/healthAndErrors');
+const rateLimiter = require('./middleware/rateLimiter');
 const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
@@ -17,7 +17,6 @@ const PORT = process.env.PORT || 5000;
 // ============================================
 
 // BUG-05 FIX: Never use wildcard '*' with credentials:true — browsers reject it.
-// Always use an explicit origin.
 const allowedOrigins = process.env.FRONTEND_URL
   ? [process.env.FRONTEND_URL, 'https://bdask.com', 'https://www.bdask.com']
   : ['https://bdask.com', 'https://www.bdask.com', 'http://localhost:3000'];
@@ -31,7 +30,8 @@ app.use(cors({
       callback(new Error('CORS policy: origin not allowed'));
     }
   },
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
 
@@ -41,33 +41,18 @@ app.use(express.json({ limit: '1mb' }));
 app.set('trust proxy', 1);
 
 // ============================================
-// RATE LIMITING
+// RATE LIMITING (using existing middleware)
 // ============================================
 
-// GAP-07 FIX: Protect chat from quota abuse — 30 requests per minute per IP
-const chatLimiter = rateLimit({
+// General API limiter - 200 requests/min
+app.use('/api/', rateLimiter({ windowMs: 60 * 1000, max: 200 }));
+
+// Strict limiter for AI endpoints - 30 requests/min
+const chatLimit = rateLimiter({
   windowMs: 60 * 1000,
   max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    error: true,
-    message: 'অনুরোধ সীমা অতিক্রম হয়েছে। এক মিনিট পর আবার চেষ্টা করুন। ⏳',
-    message_en: 'Rate limit exceeded. Please wait 1 minute.',
-  },
+  message: 'অনুরোধ সীমা অতিক্রম হয়েছে। এক মিনিট পর আবার চেষ্টা করুন। ⏳',
 });
-
-// General API limiter — 200 requests per minute
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use('/api/', apiLimiter);
-app.use('/api/chat', chatLimiter);
-app.use('/api/translate', chatLimiter);
 
 // ============================================
 // ROUTES
@@ -80,14 +65,13 @@ app.use('/api', healthRoutes);
 app.use('/api', analyticsRoutes);
 
 // ---- CHAT ENDPOINT ----
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatLimit, async (req, res) => {
   const { message } = req.body;
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return res.status(400).json({ error: true, message: 'বার্তা প্রদান করুন।' });
   }
 
-  // Limit message length to prevent abuse
   const safeMessage = message.trim().slice(0, 2000);
 
   try {
@@ -97,7 +81,7 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // BUG-04 FIX: Use globalThis.fetch which is available in Node 18+
+    // BUG-04 FIX: globalThis.fetch guaranteed in Node 18+
     const response = await globalThis.fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
@@ -106,24 +90,19 @@ app.post('/api/chat', async (req, res) => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are BdAsk (বিডিআস্ক), a helpful AI assistant built specifically for Bangladesh. 
-Answer primarily in Bengali (Bangla) unless the user writes in English. 
-Be friendly, informative, and accurate. 
-Focus on topics relevant to Bangladesh: cricket, news, culture, prayer times, weather, local events.
+              text: `You are BdAsk (বিডিআস্ক), a helpful AI assistant for Bangladesh.
+Answer primarily in Bengali (Bangla) unless the user writes in English.
+Be friendly, informative, and accurate.
+Focus on topics relevant to Bangladesh: cricket, news, culture, prayer times, weather.
 User's question: ${safeMessage}`
             }]
           }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          }
+          generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
         }),
       }
     );
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      console.error('[Gemini Error]:', errData);
       return res.status(502).json({ error: true, message: 'AI সহায়ক এই মুহূর্তে ব্যস্ত আছে। কিছুক্ষণ পর চেষ্টা করুন।' });
     }
 
@@ -178,9 +157,8 @@ app.get('/api/news', async (req, res) => {
 });
 
 // ---- TRANSLATE ENDPOINT ----
-app.post('/api/translate', async (req, res) => {
+app.post('/api/translate', chatLimit, async (req, res) => {
   const { text, targetLang } = req.body;
-
   if (!text || !targetLang) {
     return res.status(400).json({ error: true, message: 'অনুবাদের জন্য টেক্সট ও ভাষা প্রদান করুন।' });
   }
@@ -198,7 +176,7 @@ app.post('/api/translate', async (req, res) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `Translate the following Bengali text to ${targetLang}. Return ONLY the translation, no explanations.\n\nText: ${safeText}` }] }],
+          contents: [{ parts: [{ text: `Translate the following Bengali text to ${targetLang}. Return ONLY the translation.\n\nText: ${safeText}` }] }],
         }),
       }
     );
