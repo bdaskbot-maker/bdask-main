@@ -66,15 +66,19 @@
     const $$ = (sel) => document.querySelectorAll(sel);
 
     // ---- SPLASH SCREEN ----
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const splash = $('#splash-screen');
-            if (splash) {
-                splash.classList.add('fade-out');
-                setTimeout(() => splash.remove(), 500);
-            }
-        }, 1800);
-    });
+    function hideSplash() {
+        const splash = $('#splash-screen');
+        if (splash && !splash.classList.contains('fade-out')) {
+            splash.classList.add('fade-out');
+            setTimeout(() => splash.remove(), 500);
+        }
+    }
+
+    // Try hiding via load event for smooth appearance
+    window.addEventListener('load', () => setTimeout(hideSplash, 1800));
+
+    // Fallback: ALWAYS hide after 3 seconds in case window.load hangs (e.g., slow fonts/images)
+    setTimeout(hideSplash, 3000);
 
     // ---- GREETING BASED ON TIME ----
     function setGreeting() {
