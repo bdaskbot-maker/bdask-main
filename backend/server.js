@@ -201,13 +201,27 @@ app.post('/api/translate', chatLimit, async (req, res) => {
 app.use(errorMiddleware);
 
 // ============================================
-// START SERVER
+// START SERVER (with port fallback)
 // ============================================
-app.listen(PORT, () => {
-  console.log(`🇧🇩 BdAsk API running on http://localhost:${PORT}`);
-  console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   GEMINI_API  : ${process.env.GEMINI_API_KEY ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   CRICKET_API : ${process.env.CRICKET_DATA_API_KEY ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   NEWS_API    : ${process.env.NEWS_DATA_API_KEY ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   MONGODB_URI : ${process.env.MONGODB_URI ? '✅ Set' : '❌ Missing'}`);
-});
+function startServer(port) {
+  const server = app.listen(port, () => {
+    console.log(`🇧🇩 BdAsk API running on http://localhost:${port}`);
+    console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   GEMINI_API  : ${process.env.GEMINI_API_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   CRICKET_API : ${process.env.CRICKET_DATA_API_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   NEWS_API    : ${process.env.NEWS_DATA_API_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   MONGODB_URI : ${process.env.MONGODB_URI ? '✅ Set' : '❌ Missing'}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️  Port ${port} is in use, trying port ${port + 1}...`);
+      startServer(port + 1);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(PORT);
