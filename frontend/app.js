@@ -190,18 +190,81 @@
     });
 
     // ---- SIDEBAR ----
+    let previousActiveElement = null;
+    
     function toggleSidebar(show) {
         const sidebar = $('#history-sidebar');
         const overlay = $('#sidebar-overlay');
         if (!sidebar || !overlay) return;
+        
         if (show) {
+            previousActiveElement = document.activeElement;
             sidebar.classList.remove('hidden');
             overlay.classList.remove('hidden');
             renderHistory();
+            
+            // Focus trap
+            const closeBtn = $('#btn-close-sidebar');
+            if (closeBtn) closeBtn.focus();
+            
+            // Announce to screen readers
+            announceToScreenReader('চ্যাট ইতিহাস খোলা হয়েছে');
+            
+            // Trap focus within sidebar
+            sidebar.addEventListener('keydown', trapFocus);
         } else {
             sidebar.classList.add('hidden');
             overlay.classList.add('hidden');
+            sidebar.removeEventListener('keydown', trapFocus);
+            
+            // Restore focus
+            if (previousActiveElement) {
+                previousActiveElement.focus();
+                previousActiveElement = null;
+            }
         }
+    }
+    
+    function trapFocus(e) {
+        if (e.key !== 'Tab') return;
+        
+        const sidebar = $('#history-sidebar');
+        const focusableElements = sidebar.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstEl = focusableElements[0];
+        const lastEl = focusableElements[focusableElements.length - 1];
+        
+        if (e.shiftKey && document.activeElement === firstEl) {
+            e.preventDefault();
+            lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+            e.preventDefault();
+            firstEl.focus();
+        }
+    }
+    
+    // Close sidebar on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !$('#history-sidebar')?.classList.contains('hidden')) {
+            toggleSidebar(false);
+        }
+    });
+    
+    // ---- SCREEN READER ANNOUNCEMENTS ----
+    function announceToScreenReader(message) {
+        let announcer = $('#sr-announcer');
+        if (!announcer) {
+            announcer = document.createElement('div');
+            announcer.id = 'sr-announcer';
+            announcer.setAttribute('role', 'status');
+            announcer.setAttribute('aria-live', 'polite');
+            announcer.setAttribute('aria-atomic', 'true');
+            announcer.className = 'sr-only';
+            document.body.appendChild(announcer);
+        }
+        announcer.textContent = '';
+        setTimeout(() => { announcer.textContent = message; }, 100);
     }
 
     $('#btn-close-sidebar')?.addEventListener('click', () => toggleSidebar(false));
@@ -285,6 +348,12 @@
         const text = chatInput?.value.trim();
         if (!text) return;
 
+        // Disable send button during request
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.classList.add('loading');
+        }
+
         // Switch to chat view
         $('#hero-section').style.display = 'none';
         $('#features-section').style.display = 'none';
@@ -339,6 +408,12 @@
         } catch (err) {
             typingEl?.classList.add('hidden');
             addMessage('ইন্টারনেট সংযোগ বা সার্ভারে সমস্যা হয়েছে। আবার চেষ্টা করুন। 📶', 'bot');
+        } finally {
+            // Re-enable send button
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('loading');
+            }
         }
     }
 
@@ -347,12 +422,99 @@
         if (!container) return;
         const msg = document.createElement('div');
         msg.className = `message ${type}`;
+        
+        // Add copy/share buttons for bot messages
+        const actionsHtml = type === 'bot' ? `
+          <div class="message-actions">
+            <button class="message-action-btn copy-btn" data-text="${escapeHtml(text)}" title="কপি করুন" aria-label="Copy message">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>কপি</span>
+            </button>
+            <button class="message-action-btn share-btn" data-text="${escapeHtml(text)}" title="শেয়ার করুন" aria-label="Share message">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span>শেয়ার</span>
+            </button>
+          </div>
+        ` : '';
+        
         msg.innerHTML = `
-      <div class="message-avatar">${type === 'user' ? '👤' : '🇧🇩'}</div>
-      <div class="message-bubble">${type === 'bot' ? formatMarkdown(text) : escapeHtml(text)}</div>
-    `;
+          <div class="message-avatar">${type === 'user' ? '👤' : '🇧🇩'}</div>
+          <div class="message-content">
+            <div class="message-bubble">${type === 'bot' ? formatMarkdown(text) : escapeHtml(text)}</div>
+            ${actionsHtml}
+          </div>
+        `;
         container.appendChild(msg);
         msg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        
+        // Attach copy/share handlers
+        if (type === 'bot') {
+            const copyBtn = msg.querySelector('.copy-btn');
+            const shareBtn = msg.querySelector('.share-btn');
+            
+            copyBtn?.addEventListener('click', () => copyToClipboard(text, copyBtn));
+            shareBtn?.addEventListener('click', () => shareContent(text));
+        }
+    }
+    
+    // ---- COPY TO CLIPBOARD ----
+    async function copyToClipboard(text, btn) {
+        try {
+            await navigator.clipboard.writeText(text);
+            btn.classList.add('copied');
+            const originalText = btn.querySelector('span').textContent;
+            btn.querySelector('span').textContent = 'কপি হয়েছে!';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.querySelector('span').textContent = originalText;
+            }, 2000);
+        } catch (err) {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('কপি করা হয়েছে', 'success');
+        }
+    }
+    
+    // ---- SHARE CONTENT ----
+    async function shareContent(text) {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'বিডিআস্ক থেকে উত্তর',
+                    text: text,
+                    url: window.location.href
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    showToast('শেয়ার করা যায়নি', 'error');
+                }
+            }
+        } else {
+            // Fallback: copy to clipboard
+            await copyToClipboard(text, null);
+            showToast('লিংক কপি করা হয়েছে', 'success');
+        }
+    }
+    
+    // ---- TOAST NOTIFICATION ----
+    function showToast(message, type = 'info') {
+        // Remove existing toast
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 3000);
     }
 
     // ---- VOICE INPUT ----
@@ -443,7 +605,7 @@
             }).join('');
 
         } catch {
-            container.innerHTML = renderInfoCard('🏏', 'ক্রিকেট স্কোর লোড করা যাচ্ছে না।');
+            container.innerHTML = renderErrorCard('🏏', 'ক্রিকেট স্কোর লোড করা যাচ্ছে না।', loadCricket);
         }
     }
 
@@ -492,7 +654,7 @@
             });
 
         } catch {
-            container.innerHTML = renderInfoCard('📰', 'খবর লোড করা যাচ্ছে না।');
+            container.innerHTML = renderErrorCard('📰', 'খবর লোড করা যাচ্ছে না।', loadNews);
         }
     }
 
@@ -553,7 +715,7 @@
       </div>`;
 
         } catch {
-            container.innerHTML = renderInfoCard('🕌', 'নামাজের সময় লোড করা যাচ্ছে না।');
+            container.innerHTML = renderErrorCard('🕌', 'নামাজের সময় লোড করা যাচ্ছে না।', loadPrayer);
         }
     }
 
@@ -598,17 +760,21 @@
         </div>
       `;
         } catch {
-            container.innerHTML = renderInfoCard('🌤️', 'আবহাওয়া তথ্য লোড করা যাচ্ছে না।');
+            container.innerHTML = renderErrorCard('🌤️', 'আবহাওয়া তথ্য লোড করা যাচ্ছে না।', loadWeather);
         }
     }
 
     // ---- TRANSLATE ----
-    $('#btn-translate')?.addEventListener('click', async () => {
+    const translateBtn = $('#btn-translate');
+    translateBtn?.addEventListener('click', async () => {
         const input = $('#translate-input')?.value.trim();
         const lang = $('#translate-lang')?.value;
         const output = $('#translate-output');
         if (!input || !output) return;
 
+        // Add loading state
+        translateBtn.disabled = true;
+        translateBtn.classList.add('loading');
         output.textContent = 'অনুবাদ করা হচ্ছে...';
 
         try {
@@ -622,6 +788,9 @@
             output.innerHTML = formatMarkdown(translatedText);
         } catch {
             output.textContent = 'অনুবাদ করতে সমস্যা হয়েছে।';
+        } finally {
+            translateBtn.disabled = false;
+            translateBtn.classList.remove('loading');
         }
     });
 
@@ -744,8 +913,20 @@
     $$('.refresh-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.dataset.refresh;
-            if (target === 'cricket') loadCricket();
-            else if (target === 'news') loadNews();
+            // Add loading animation
+            btn.classList.add('loading');
+            btn.style.pointerEvents = 'none';
+            
+            const restoreBtn = () => {
+                btn.classList.remove('loading');
+                btn.style.pointerEvents = '';
+            };
+            
+            if (target === 'cricket') loadCricket().finally(restoreBtn);
+            else if (target === 'news') loadNews().finally(restoreBtn);
+            else if (target === 'prayer') loadPrayer().finally(restoreBtn);
+            else if (target === 'weather') loadWeather().finally(restoreBtn);
+            else restoreBtn();
         });
     });
 
@@ -785,6 +966,69 @@
             Rangpur: 'রংপুর', Mymensingh: 'ময়মনসিংহ'
         };
         return map[name] || name;
+    }
+
+    // ============================================
+    // NETWORK STATUS DETECTION
+    // ============================================
+    function updateNetworkStatus() {
+        const statusEl = $('#network-status');
+        const statusText = statusEl?.querySelector('.network-status-text');
+        const statusIcon = statusEl?.querySelector('.network-status-icon');
+        
+        if (!statusEl) return;
+        
+        if (navigator.onLine) {
+            statusEl.classList.add('hidden');
+            statusEl.classList.remove('online');
+        } else {
+            statusEl.classList.remove('hidden');
+            if (statusText) statusText.textContent = 'অফলাইন - ইন্টারনেট সংযোগ নেই';
+            if (statusIcon) statusIcon.textContent = '📶';
+        }
+    }
+    
+    window.addEventListener('online', () => {
+        updateNetworkStatus();
+        showToast('ইন্টারনেট সংযোগ পুনরায় স্থাপিত', 'success');
+    });
+    
+    window.addEventListener('offline', () => {
+        updateNetworkStatus();
+    });
+    
+    // Initial check
+    updateNetworkStatus();
+
+    // ============================================
+    // ERROR CARD WITH RETRY
+    // ============================================
+    function renderErrorCard(icon, text, retryFn, retryLabel = 'আবার চেষ্টা করুন') {
+        const retryId = 'retry-' + Math.random().toString(36).substr(2, 9);
+        setTimeout(() => {
+            const btn = document.getElementById(retryId);
+            if (btn && retryFn) {
+                btn.addEventListener('click', async () => {
+                    btn.classList.add('loading');
+                    try {
+                        await retryFn();
+                    } finally {
+                        btn.classList.remove('loading');
+                    }
+                });
+            }
+        }, 0);
+        
+        return `
+            <div class="error-card">
+                <div class="error-card-icon">${icon}</div>
+                <div class="error-card-text">${escapeHtml(text)}</div>
+                <button id="${retryId}" class="retry-btn">
+                    <span class="retry-icon">🔄</span>
+                    ${escapeHtml(retryLabel)}
+                </button>
+            </div>
+        `;
     }
 
     // ============================================
