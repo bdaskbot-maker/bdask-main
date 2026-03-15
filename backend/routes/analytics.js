@@ -27,6 +27,11 @@ router.post('/analytics', express.json(), (req, res) => {
       flushAnalytics();
     }
 
+    // Hard cap to prevent memory leak
+    if (analyticsBuffer.length > 500) {
+      analyticsBuffer = analyticsBuffer.slice(-500);
+    }
+
     res.status(204).end();
   } catch (e) {
     res.status(204).end(); // Never fail analytics
@@ -48,7 +53,12 @@ async function flushAnalytics() {
   } catch (e) {
     console.error('[Analytics] Flush failed:', e.message);
     // Put events back (safe array prepend — avoids stack overflow on large batches)
-    analyticsBuffer = [...events, ...analyticsBuffer];
+    // Only put back if we haven't already hit the cap
+    if (analyticsBuffer.length + events.length < 1000) {
+      analyticsBuffer = [...events, ...analyticsBuffer];
+    } else {
+      console.warn('[Analytics] Dropping events due to buffer saturation');
+    }
   }
 }
 

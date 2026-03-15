@@ -24,7 +24,7 @@ jobs:
           node-version: '18'
 
       - name: Install Backend Dependencies
-        run: cd backend && npm install --production
+        run: cd backend && npm install
 
       - name: Run Backend Tests
         run: cd backend && npm test || true
@@ -43,8 +43,13 @@ jobs:
             echo "❌ .emergent/ found in repo - REMOVE IT"
             FOUND=1
           fi
-          # Check for hardcoded API keys
-          if grep -rn "AIza\|sk-\|mongodb+srv://" --include="*.js" --include="*.html" --include="*.json" frontend/ backend/ 2>/dev/null | grep -v node_modules | grep -v .env.example | grep -v package; then
+          # Check for hardcoded API keys (skip example/package files)
+          if grep -rn "AIza\|sk-\|mongodb+srv://" \
+            --include="*.js" --include="*.html" --include="*.json" \
+            frontend/ backend/ 2>/dev/null \
+            | grep -v node_modules \
+            | grep -v .env.example \
+            | grep -v package; then
             echo "⚠️ Possible API key found in source code!"
             FOUND=1
           fi
@@ -62,11 +67,18 @@ jobs:
 
       - name: Deploy Frontend to Vercel
         uses: amondnet/vercel-action@v25
+        continue-on-error: true
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
+          working-directory: './'
 
-      # Add your backend deployment step here
-      # e.g., Railway, Render, or Docker push
+      # Backend is deployed to Railway separately
+      # Set RAILWAY_TOKEN secret and uncomment below when ready:
+      # - name: Deploy Backend to Railway
+      #   uses: bervProject/railway-deploy@main
+      #   with:
+      #     railway_token: ${{ secrets.RAILWAY_TOKEN }}
+      #     service: bdask-api

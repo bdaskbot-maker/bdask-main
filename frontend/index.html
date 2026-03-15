@@ -3,7 +3,7 @@
 <head>
   <!-- Primary Meta Tags -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>বিডিআস্ক | BdAsk — বাংলাদেশের AI সার্চ ইঞ্জিন</title>
   <meta name="title" content="বিডিআস্ক | BdAsk — বাংলাদেশের AI সার্চ ইঞ্জিন">
   <meta name="description" content="বাংলায় AI চ্যাট, লাইভ ক্রিকেট স্কোর, সর্বশেষ খবর, নামাজের সময়, আবহাওয়া, অনুবাদ — সব একটি জায়গায়। Bengali AI Search Engine with cricket, news, prayer times, weather & more.">
@@ -22,7 +22,7 @@
   <meta property="og:url" content="https://bdask.com/">
   <meta property="og:title" content="বিডিআস্ক — বাংলাদেশের AI সার্চ ইঞ্জিন 🇧🇩">
   <meta property="og:description" content="বাংলায় AI চ্যাট করুন। লাইভ ক্রিকেট, খবর, নামাজের সময়, আবহাওয়া, যাকাত ক্যালকুলেটর — সব ফ্রি!">
-  <meta property="og:image" content="https://bdask.com/og-image.png">
+  <meta property="og:image" content="/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:locale" content="bn_BD">
@@ -33,16 +33,17 @@
   <meta name="twitter:url" content="https://bdask.com/">
   <meta name="twitter:title" content="বিডিআস্ক — বাংলাদেশের AI সার্চ ইঞ্জিন 🇧🇩">
   <meta name="twitter:description" content="বাংলায় AI চ্যাট, লাইভ ক্রিকেট, খবর, নামাজের সময় — সব একটি জায়গায়!">
-  <meta name="twitter:image" content="https://bdask.com/og-image.png">
+  <meta name="twitter:image" content="/og-image.png">
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="বিডিআস্ক">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-512.png">
 
   <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/svg+xml" href="/og-image.svg">
 
   <!-- Fonts -->
@@ -70,6 +71,15 @@
   </script>
 </head>
 <body>
+
+  <!-- Skip Link for Accessibility -->
+  <a href="#app-main" class="skip-link">মূল বিষয়বস্তুতে যান</a>
+
+  <!-- Network Status Indicator -->
+  <div id="network-status" class="network-status hidden" role="alert" aria-live="polite">
+    <span class="network-status-icon">📶</span>
+    <span class="network-status-text">অফলাইন - ইন্টারনেট সংযোগ নেই</span>
+  </div>
 
   <!-- ===== SPLASH SCREEN ===== -->
   <div id="splash-screen" class="splash">
@@ -194,7 +204,8 @@
         <div class="tab-panel" id="panel-prayer" data-tab="prayer">
           <div class="panel-header">
             <h2>🕌 নামাজের সময়</h2>
-            <select id="prayer-city" class="city-select">
+            <div class="panel-header-actions">
+              <select id="prayer-city" class="city-select">
               <option value="Dhaka">ঢাকা</option>
               <option value="Chittagong">চট্টগ্রাম</option>
               <option value="Sylhet">সিলেট</option>
@@ -203,7 +214,9 @@
               <option value="Barishal">বরিশাল</option>
               <option value="Rangpur">রংপুর</option>
               <option value="Mymensingh">ময়মনসিংহ</option>
-            </select>
+              </select>
+              <button class="refresh-btn" data-refresh="prayer" title="রিফ্রেশ" aria-label="Refresh prayer times">🔄</button>
+            </div>
           </div>
           <div class="panel-content" id="prayer-content">
             <div class="skeleton-card"></div>
@@ -214,13 +227,16 @@
         <div class="tab-panel" id="panel-weather" data-tab="weather">
           <div class="panel-header">
             <h2>🌤️ আবহাওয়া</h2>
-            <select id="weather-city" class="city-select">
-              <option value="Dhaka">ঢাকা</option>
-              <option value="Chittagong">চট্টগ্রাম</option>
-              <option value="Sylhet">সিলেট</option>
-              <option value="Rajshahi">রাজশাহী</option>
-              <option value="Khulna">খুলনা</option>
-            </select>
+            <div class="panel-header-actions">
+              <select id="weather-city" class="city-select">
+                <option value="Dhaka">ঢাকা</option>
+                <option value="Chittagong">চট্টগ্রাম</option>
+                <option value="Sylhet">সিলেট</option>
+                <option value="Rajshahi">রাজশাহী</option>
+                <option value="Khulna">খুলনা</option>
+              </select>
+              <button class="refresh-btn" data-refresh="weather" title="রিফ্রেশ" aria-label="Refresh weather">🔄</button>
+            </div>
           </div>
           <div class="panel-content" id="weather-content">
             <div class="skeleton-card"></div>
@@ -274,7 +290,7 @@
                 <div class="ramadan-card-icon">🌅</div>
                 <h3>ইফতার / সেহরি</h3>
                 <div id="iftar-countdown" class="countdown-display">--:--:--</div>
-                <p id="iftar-label" class="countdown-label">পরবর্তী ইফতার পর্যন্ত</p>
+                <p id="iftar-label" class="countdown-label">পরবর��তী ইফতার পর্যন্ত</p>
               </div>
               <!-- Zakat Calculator -->
               <div class="ramadan-card">
